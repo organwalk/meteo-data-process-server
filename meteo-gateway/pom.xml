@@ -5,11 +5,11 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.weather</groupId>
-        <artifactId>MeteoDataProcessServer</artifactId>
+        <artifactId>meteo-data-process-server</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>Meteo-GateWay</artifactId>
+    <artifactId>meteo-gateway</artifactId>
 
     <properties>
         <start-class>com.weather.MeteoGateWayApplication</start-class>

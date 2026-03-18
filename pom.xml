@@ -10,15 +10,15 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.weather</groupId>
-    <artifactId>MeteoDataProcessServer</artifactId>
+    <artifactId>meteo-data-process-server</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <modules>
         <module>meteo-common</module>
-        <module>Meteo-Process-Resource</module>
-        <module>Meteo-Obtain-Resource</module>
-        <module>UserClient-Service</module>
-        <module>Meteo-GateWay</module>
+        <module>meteo-process-resource</module>
+        <module>meteo-obtain-resource</module>
+        <module>user-client-service</module>
+        <module>meteo-gateway</module>
     </modules>
 
     <properties>

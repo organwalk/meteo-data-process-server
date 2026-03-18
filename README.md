@@ -1,4 +1,4 @@
-# MeteoDataProcessServer
+# meteo-data-process-server
 
 信创技术下气象数据分析预测系统的服务端项目，采用 Spring Boot + Spring Cloud Alibaba 的微服务架构，围绕气象数据的采集、存储、查询、同步与预测接入构建统一后端能力。
 
@@ -6,10 +6,10 @@
 
 | 模块 | 作用 | 默认端口 |
 | --- | --- | --- |
-| `Meteo-GateWay` | API 统一入口、跨域处理、令牌鉴权、路由转发 | `9094` |
-| `UserClient-Service` | 用户注册、登录、退出、访问令牌管理 | `9194` |
-| `Meteo-Process-Resource` | 气象数据查询、统计、同步编排 | `9394` |
-| `Meteo-Obtain-Resource` | UDP 数据采集、响应处理、Redis/MySQL 落库 | `9494` |
+| `meteo-gateway` | API 统一入口、跨域处理、令牌鉴权、路由转发 | `9094` |
+| `user-client-service` | 用户注册、登录、退出、访问令牌管理 | `9194` |
+| `meteo-process-resource` | 气象数据查询、统计、同步编排 | `9394` |
+| `meteo-obtain-resource` | UDP 数据采集、响应处理、Redis/MySQL 落库 | `9494` |
 | `meteo-common` | 公共响应模型、异常处理、配置属性、常量与基础组件 | 无独立端口 |
 
 外部预测服务通过网关的 `/anapredict/**` 路由接入，默认地址为 `http://localhost:9594`，服务端代码不在本仓库内。
@@ -20,37 +20,37 @@
 
 项目采用“网关统一入口 + 用户服务认证 + 采集服务落库 + 处理服务查询编排 + 公共模块复用”的结构。
 
-1. 调用方统一经由 `Meteo-GateWay` 进入系统。
+1. 调用方统一经由 `meteo-gateway` 进入系统。
 2. `/user/**` 请求直接路由到用户服务，完成登录、注册与令牌管理。
 3. `/qx/**` 请求默认经过网关令牌校验后转发到气象处理服务。
-4. `Meteo-Process-Resource` 负责对 MySQL/Redis 中的气象数据进行查询、统计与同步编排。
-5. 当处理服务发起同步请求时，会调用 `Meteo-Obtain-Resource`，由采集服务向 UDP 数据源发送请求。
+4. `meteo-process-resource` 负责对 MySQL/Redis 中的气象数据进行查询、统计与同步编排。
+5. 当处理服务发起同步请求时，会调用 `meteo-obtain-resource`，由采集服务向 UDP 数据源发送请求。
 6. UDP 响应由 Netty 客户端接收，经 `UdpResponseProcessor` 解析后写入 Redis 与 MySQL，再由同步编排返回最终结果。
 
 ## 模块职责
 
-### `Meteo-GateWay`
+### `meteo-gateway`
 
 - 基于 Spring Cloud Gateway 提供统一入口。
 - 对 `/qx/**` 与 `/anapredict/**` 路由应用 `TokenAuthenticationGatewayFilterFactory`。
 - 通过 `UserClient` 远程访问用户服务，校验请求头中的 `name` 与 `access_token`。
 - 使用 `GatewayAuthProperties` 管理鉴权开关与跨域白名单。
 
-### `UserClient-Service`
+### `user-client-service`
 
 - 提供用户注册、登录、退出与令牌查询接口。
 - 登录时使用 `BCryptPasswordEncoder` 校验密码。
 - 成功登录后生成 URL Safe Token 并写入 Redis。
 - 支持基于 `app.security.token-ttl` 的令牌生存周期控制。
 
-### `Meteo-Process-Resource`
+### `meteo-process-resource`
 
 - 提供站点信息、采集日期、按小时/按天/按区间/复杂条件查询等接口。
 - 通过 `ObtainClient` 调用采集服务发起数据同步。
 - 使用 `StationTableNameResolver` 将站点编码映射为动态气象表名。
 - 对按小时、按天、按时间范围的查询结果进行 Redis 缓存。
 
-### `Meteo-Obtain-Resource`
+### `meteo-obtain-resource`
 
 - 通过 Netty UDP 客户端与外部数据源通信。
 - 将 UDP 响应统一交由 `UdpResponseProcessor` 处理。
@@ -82,12 +82,12 @@
 ## 目录结构
 
 ```text
-MeteoDataProcessServer
+meteo-data-process-server
 ├─ meteo-common
-├─ Meteo-GateWay
-├─ Meteo-Obtain-Resource
-├─ Meteo-Process-Resource
-├─ UserClient-Service
+├─ meteo-gateway
+├─ meteo-obtain-resource
+├─ meteo-process-resource
+├─ user-client-service
 ├─ database
 │  └─ compatibility
 ├─ .mvn
@@ -139,10 +139,10 @@ spring:
 
 | 服务 | 默认端口 | 关键环境变量 |
 | --- | --- | --- |
-| `Meteo-GateWay` | `9094` | `SERVER_PORT`、`NACOS_SERVER_ADDR`、`USER_SERVICE_BASE_URL`、`ANAPREDICT_SERVICE_BASE_URL`、`GATEWAY_AUTH_ENABLED` |
-| `Meteo-Process-Resource` | `9394` | `METEO_PROCESS_DB_*`、`METEO_PROCESS_REDIS_*`、`OBTAIN_SERVICE_BASE_URL`、`METEO_CACHE_*` |
-| `Meteo-Obtain-Resource` | `9494` | `METEO_OBTAIN_DB_*`、`METEO_OBTAIN_REDIS_*`、`UDP_REMOTE_HOST`、`UDP_REMOTE_PORT`、`UDP_AUTH_*` |
-| `UserClient-Service` | `9194` | `USER_CLIENT_DB_*`、`USER_CLIENT_REDIS_*`、`USER_TOKEN_TTL`、`USER_PASSWORD_STRENGTH` |
+| `meteo-gateway` | `9094` | `SERVER_PORT`、`NACOS_SERVER_ADDR`、`USER_SERVICE_BASE_URL`、`ANAPREDICT_SERVICE_BASE_URL`、`GATEWAY_AUTH_ENABLED` |
+| `meteo-process-resource` | `9394` | `METEO_PROCESS_DB_*`、`METEO_PROCESS_REDIS_*`、`OBTAIN_SERVICE_BASE_URL`、`METEO_CACHE_*` |
+| `meteo-obtain-resource` | `9494` | `METEO_OBTAIN_DB_*`、`METEO_OBTAIN_REDIS_*`、`UDP_REMOTE_HOST`、`UDP_REMOTE_PORT`、`UDP_AUTH_*` |
+| `user-client-service` | `9194` | `USER_CLIENT_DB_*`、`USER_CLIENT_REDIS_*`、`USER_TOKEN_TTL`、`USER_PASSWORD_STRENGTH` |
 
 ### 请求头约定
 
@@ -192,10 +192,10 @@ database/compatibility/20260318_schema_hardening.sql
 推荐启动顺序如下：
 
 ```bash
-./mvnw -pl UserClient-Service spring-boot:run
-./mvnw -pl Meteo-Obtain-Resource spring-boot:run
-./mvnw -pl Meteo-Process-Resource spring-boot:run
-./mvnw -pl Meteo-GateWay spring-boot:run
+./mvnw -pl user-client-service spring-boot:run
+./mvnw -pl meteo-obtain-resource spring-boot:run
+./mvnw -pl meteo-process-resource spring-boot:run
+./mvnw -pl meteo-gateway spring-boot:run
 ```
 
 如需先打包再部署：
@@ -348,7 +348,7 @@ database/compatibility/20260318_schema_hardening.sql
 将用户认证、跨域和服务路由统一收敛到一个入口层，避免业务服务重复编写认证逻辑，并确保 `/qx/**` 与 `/anapredict/**` 访问具备一致的安全边界。
 
 **实现方式**  
-`Meteo-GateWay` 使用 Spring Cloud Gateway 统一暴露入口，通过 `TokenAuthenticationGatewayFilterFactory` 读取 `name` 与 `access_token` 请求头，并利用 `UserClient` 调用用户服务的 `/user/token` 校验 Redis 中的最新令牌；同时 `CorsConfig` 基于 `app.gateway.auth.*` 配置实现跨域白名单和鉴权开关，既能在联调环境快速放行，也能在生产场景集中控制。
+`meteo-gateway` 使用 Spring Cloud Gateway 统一暴露入口，通过 `TokenAuthenticationGatewayFilterFactory` 读取 `name` 与 `access_token` 请求头，并利用 `UserClient` 调用用户服务的 `/user/token` 校验 Redis 中的最新令牌；同时 `CorsConfig` 基于 `app.gateway.auth.*` 配置实现跨域白名单和鉴权开关，既能在联调环境快速放行，也能在生产场景集中控制。
 
 ### 2. UDP 异步采集转同步业务编排
 
