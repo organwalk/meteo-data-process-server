@@ -1,95 +1,74 @@
 package com.weather.service;
 
+import com.weather.common.response.DataResult;
+import com.weather.config.UserSecurityProperties;
 import com.weather.entity.request.LoginRequest;
-import com.weather.entity.respond.LoginRespond;
 import com.weather.entity.request.RegisterRequest;
+import com.weather.entity.respond.LoginRespond;
 import com.weather.mapper.UserMapper;
 import com.weather.mapper.redis.UserRedis;
-import com.weather.utils.Result;
 import lombok.AllArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
-import java.util.UUID;
 
-/**
- * 定义用户服务业务接口实现
- * by organwalk 2023-04-02
- */
+import java.security.SecureRandom;
+import java.util.Base64;
+
 @Service
 @AllArgsConstructor
-public class UserServiceImpl implements UserService{
+public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
     private final UserRedis userRedis;
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
+    private final UserSecurityProperties properties;
+    private final SecureRandom secureRandom = new SecureRandom();
 
-    /**
-     * 用户认证业务
-     * @param loginRequest 登录请求实体
-     * @return 根据不同的认证状态返回结果
-     *
-     * by organwalk 2023-04-02
-     */
     @Override
     public LoginRespond authUser(LoginRequest loginRequest) {
         String username = loginRequest.getUsername();
-        // 检查UID是否存在
         Integer uid = userMapper.getUid(username);
-        if (uid == null){
+        if (uid == null) {
             return LoginRespond.not_found();
         }
-        // 检查密码是否正确
-        String realPassword = userMapper.getEncryptedPassword(uid);
-        if (!bCryptPasswordEncoder.matches(loginRequest.getPassword(), realPassword)){
-            return LoginRespond.not_found();
-        }
-        // 颁发令牌
-        String token = bCryptPasswordEncoder.encode(username) + UUID.randomUUID();
-        userRedis.saveToken(username,token);
-        return LoginRespond.ok(username,token);
 
+        String realPassword = userMapper.getEncryptedPassword(uid);
+        if (!bCryptPasswordEncoder.matches(loginRequest.getPassword(), realPassword)) {
+            return LoginRespond.not_found();
+        }
+
+        String token = generateToken();
+        userRedis.saveToken(username, token);
+        return LoginRespond.ok(username, token);
     }
 
-    /**
-     * 用户注册业务
-     * @param registerRequest 注册请求实体
-     * @return 根据注册操作状态返回结果
-     *
-     * by organwalk 2023-04-02
-     */
     @Override
-    public Result insertUser(RegisterRequest registerRequest) {
+    public DataResult insertUser(RegisterRequest registerRequest) {
         String username = registerRequest.getUsername();
         Integer uid = userMapper.getUid(username);
-        if (uid != null){
-            return Result.fail("用户名" + username + "已存在");
+        if (uid != null) {
+            return DataResult.fail("鐢ㄦ埛" + username + "宸插瓨鍦?");
         }
         userMapper.insertUser(username, bCryptPasswordEncoder.encode(registerRequest.getPassword()));
-        return Result.success("用户" + username + "注册成功");
+        return DataResult.success("鐢ㄦ埛" + username + "娉ㄥ唽鎴愬姛");
     }
 
-    /**
-     * 用户登出业务
-     * @param username 用户名
-     * @return 根据登出操作状态返回结果
-     */
     @Override
-    public Result logout(String username) {
-        if (!userRedis.checkUserStatus(username)){
-            return Result.fail("用户尚未登录，无法销毁令牌");
+    public DataResult logout(String username) {
+        if (!userRedis.checkUserStatus(username)) {
+            return DataResult.fail("鐢ㄦ埛灏氭湭鐧诲綍锛屾棤娉曢攢姣佷护鐗?");
         }
         userRedis.voidAccessToken(username);
-        return Result.success("已成功销毁用户" + username + "的令牌");
+        return DataResult.success("宸叉垚鍔熼攢姣佺敤鎴?" + username + "鐨勪护鐗?");
     }
 
-    /**
-     * 获取令牌
-     * @param username
-     * @return 返回令牌内容
-     *
-     * by organwalk 2023-04-02
-     */
     @Override
     public String getAccessToken(String username) {
         return userRedis.getAccessToken(username);
+    }
+
+    private String generateToken() {
+        byte[] randomBytes = new byte[properties.getTokenBytes()];
+        secureRandom.nextBytes(randomBytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
     }
 }

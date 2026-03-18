@@ -1,37 +1,45 @@
 server:
-  port: 9194
+  port: ${SERVER_PORT:9194}
+
 spring:
   application:
     name: user-client-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+  config:
+    import:
+      - optional:nacos:common.yaml
+      - optional:nacos:${spring.application.name}.yaml
+      - optional:nacos:${spring.application.name}-${spring.profiles.active}.yaml
   cloud:
     nacos:
+      server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
       discovery:
-        server-addr: localhost:8848
+        server-addr: ${spring.cloud.nacos.server-addr}
+      config:
+        server-addr: ${spring.cloud.nacos.server-addr}
+        file-extension: yaml
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/meteo_user?useSSL=false
-    username: root
-    password: 123456
+    url: ${USER_CLIENT_DB_URL:jdbc:mysql://localhost:3306/meteo_user?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8}
+    username: ${USER_CLIENT_DB_USERNAME:root}
+    password: ${USER_CLIENT_DB_PASSWORD:change_me}
   data:
     redis:
-      database: 1
-      host: localhost
-      port: 6379
-      password: 123456
-      timeout: 5000
-      jedis:
-        pool:
-          max-idle: 6
-          max-active: 32
-          max-wait: 100
-          min-idle: 4
-  mybatis-plus:
-    configuration:
-      log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+      database: ${USER_CLIENT_REDIS_DB:1}
+      host: ${USER_CLIENT_REDIS_HOST:localhost}
+      port: ${USER_CLIENT_REDIS_PORT:6379}
+      password: ${USER_CLIENT_REDIS_PASSWORD:}
+      timeout: ${USER_CLIENT_REDIS_TIMEOUT:5s}
+
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+
+app:
   security:
-    user:
-      password:
-        encoder: bcrypt
-
-
+    token-ttl: ${USER_TOKEN_TTL:PT0S}
+    password-strength: ${USER_PASSWORD_STRENGTH:10}
+    token-bytes: ${USER_TOKEN_BYTES:32}

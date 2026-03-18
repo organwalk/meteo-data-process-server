@@ -1,25 +1,48 @@
 server:
-  port: 9394
+  port: ${SERVER_PORT:9394}
 
 spring:
   application:
     name: meteo-process-resource
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+  config:
+    import:
+      - optional:nacos:common.yaml
+      - optional:nacos:${spring.application.name}.yaml
+      - optional:nacos:${spring.application.name}-${spring.profiles.active}.yaml
   cloud:
     nacos:
+      server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
       discovery:
-        server-addr: localhost:8848
+        server-addr: ${spring.cloud.nacos.server-addr}
+      config:
+        server-addr: ${spring.cloud.nacos.server-addr}
+        file-extension: yaml
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/meteo_data?useSSL=false
-    username: root
-    password: 123456
+    url: ${METEO_PROCESS_DB_URL:jdbc:mysql://localhost:3306/meteo_data?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8}
+    username: ${METEO_PROCESS_DB_USERNAME:root}
+    password: ${METEO_PROCESS_DB_PASSWORD:change_me}
   data:
     redis:
-      database: 2
-      host: localhost
-      port: 6379
-      password: 123456
-#mybatis-plus:
-#  configuration:
-#    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+      database: ${METEO_PROCESS_REDIS_DB:2}
+      host: ${METEO_PROCESS_REDIS_HOST:localhost}
+      port: ${METEO_PROCESS_REDIS_PORT:6379}
+      password: ${METEO_PROCESS_REDIS_PASSWORD:}
+
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+
+app:
+  cache:
+    prefix: ${METEO_CACHE_PREFIX:meteo:cache}
+    meteorology-ttl: ${METEO_CACHE_TTL:PT10M}
+  clients:
+    obtain:
+      base-url: ${OBTAIN_SERVICE_BASE_URL:http://meteo-obtain-resource}
+      connect-timeout: ${OBTAIN_SERVICE_CONNECT_TIMEOUT:PT3S}
+      read-timeout: ${OBTAIN_SERVICE_READ_TIMEOUT:PT60S}

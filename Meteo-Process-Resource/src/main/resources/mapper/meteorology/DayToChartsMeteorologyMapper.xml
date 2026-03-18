@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.weather.mapper.MySQL.meteorology.DayToChartsMeteorologyMapper">
+
+    <select id="selectMeteorologyDayToCharts" resultType="com.weather.entity.Meteorology">
+        SELECT DATE_FORMAT(dateTime, '%Y-%m-%d %H:00:00') AS chart_time
+        <if test="which != null and which.contains('1')">, ROUND(AVG(COALESCE(temperature, 0)), 2) AS temperature</if>
+        <if test="which != null and which.contains('2')">, ROUND(AVG(COALESCE(humidity, 0)), 2) AS humidity</if>
+        <if test="which != null and which.contains('3')">, ROUND(AVG(COALESCE(speed, 0)), 2) AS speed</if>
+        <if test="which != null and which.contains('4')">, ROUND(AVG(COALESCE(direction, 0)), 2) AS direction</if>
+        <if test="which != null and which.contains('5')">, ROUND(AVG(COALESCE(rain, 0)), 2) AS rain</if>
+        <if test="which != null and which.contains('6')">, ROUND(AVG(COALESCE(sunlight, 0)), 2) AS sunlight</if>
+        <if test="which != null and which.contains('7')">, ROUND(AVG(COALESCE(pm25, 0)), 2) AS pm25</if>
+        <if test="which != null and which.contains('8')">, ROUND(AVG(COALESCE(pm10, 0)), 2) AS pm10</if>
+        FROM ${tableName}
+        WHERE dateTime &gt;= #{startDateTime}
+          AND dateTime &lt; #{endDateTime}
+        GROUP BY DATE_FORMAT(dateTime, '%Y-%m-%d %H:00:00')
+    </select>
+</mapper>

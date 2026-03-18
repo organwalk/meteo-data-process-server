@@ -1,11 +1,26 @@
 server:
-  port: 9094
+  port: ${SERVER_PORT:9094}
+
 spring:
   application:
     name: meteo-gateway
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+  config:
+    import:
+      - optional:nacos:common.yaml
+      - optional:nacos:${spring.application.name}.yaml
+      - optional:nacos:${spring.application.name}-${spring.profiles.active}.yaml
   main:
     web-application-type: reactive
   cloud:
+    nacos:
+      server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+      discovery:
+        server-addr: ${spring.cloud.nacos.server-addr}
+      config:
+        server-addr: ${spring.cloud.nacos.server-addr}
+        file-extension: yaml
     gateway:
       discovery:
         locator:
@@ -15,15 +30,35 @@ spring:
           uri: lb://meteo-process-resource
           predicates:
             - Path=/qx/**
+          filters:
+            - TokenAuthentication
         - id: meteo-anapredict-resource
-          uri: http://localhost:9594
+          uri: ${ANAPREDICT_SERVICE_BASE_URL:http://localhost:9594}
           predicates:
             - Path=/anapredict/**
+          filters:
+            - TokenAuthentication
         - id: user-client-service
           uri: lb://user-client-service
           predicates:
             - Path=/user/**
-    nacos:
-      discovery:
-        server-addr: localhost:8848
-debug: true
+
+app:
+  clients:
+    user:
+      base-url: ${USER_SERVICE_BASE_URL:http://user-client-service}
+      connect-timeout: ${USER_SERVICE_CONNECT_TIMEOUT:PT3S}
+      read-timeout: ${USER_SERVICE_READ_TIMEOUT:PT10S}
+    ana-predict:
+      base-url: ${ANAPREDICT_SERVICE_BASE_URL:http://localhost:9594}
+      connect-timeout: ${ANAPREDICT_SERVICE_CONNECT_TIMEOUT:PT3S}
+      read-timeout: ${ANAPREDICT_SERVICE_READ_TIMEOUT:PT10S}
+  gateway:
+    auth:
+      enabled: ${GATEWAY_AUTH_ENABLED:true}
+      allow-origin-patterns:
+        - ${GATEWAY_ALLOW_ORIGIN_PATTERN:*}
+      allow-methods:
+        - "*"
+      allow-headers:
+        - "*"

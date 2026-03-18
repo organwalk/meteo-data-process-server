@@ -2,71 +2,88 @@ package com.weather.mapper.Redis.impl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.weather.application.query.MeteorologyQueryCriteria;
+import com.weather.common.properties.CacheProperties;
 import com.weather.mapper.Redis.RedisRepository;
-import lombok.AllArgsConstructor;
-import lombok.SneakyThrows;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @Repository
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class RedisRepositoryImpl implements RedisRepository {
-    private final RedisTemplate<String ,String> redisTemplate;
+    private final RedisTemplate<String, Object> redisTemplate;
+    private final ObjectMapper objectMapper;
+    private final CacheProperties cacheProperties;
 
-    @SneakyThrows
     @Override
-    public Boolean saveHourMeteoCache(String dataSource, String date_hour, String which, int pageSize,int offset,List<List<String>> meteoData) {
-        redisTemplate.opsForHash().put(dataSource,
-                date_hour + "_" + which + "_" + pageSize + "_" + offset,
-                new ObjectMapper().writeValueAsString(meteoData)
-        );
-        return true;
+    public boolean saveHourMeteoCache(MeteorologyQueryCriteria criteria, List<List<String>> meteoData) {
+        return save(cacheKey("hour", criteria), meteoData);
     }
 
-    @SneakyThrows
     @Override
-    public List<List<String>> getHourMeteoCache(String dataSource, String date_hour, String which, int pageSize,int offset) {
-        String strMeteo = (String) redisTemplate.opsForHash().get(dataSource,date_hour + "_" + which + "_" + pageSize + "_" + offset);
-        return  strMeteo != null ?
-                new ObjectMapper().readValue(strMeteo, new TypeReference<>() {}) : new ArrayList<>();
+    public List<List<String>> getHourMeteoCache(MeteorologyQueryCriteria criteria) {
+        return read(cacheKey("hour", criteria));
     }
 
-    @SneakyThrows
     @Override
-    public Boolean saveDayMeteoCache(String dataSource, String date, String which, String type, List<List<String>> meteoData) {
-        redisTemplate.opsForHash().put(dataSource,
-                date + "_" + type + "_" + which,
-                new ObjectMapper().writeValueAsString(meteoData)
-        );
-        return true;
+    public boolean saveDayMeteoCache(MeteorologyQueryCriteria criteria, List<List<String>> meteoData) {
+        return save(cacheKey("day", criteria), meteoData);
     }
 
-    @SneakyThrows
     @Override
-    public List<List<String>> getDayMeteoCache(String dataSource, String date, String which, String type) {
-        String strMeteo = (String) redisTemplate.opsForHash().get(dataSource, date + "_" + type + "_" + which);
-        return strMeteo != null ?
-                new ObjectMapper().readValue(strMeteo, new TypeReference<>() {}) : new ArrayList<>();
+    public List<List<String>> getDayMeteoCache(MeteorologyQueryCriteria criteria) {
+        return read(cacheKey("day", criteria));
     }
 
-    @SneakyThrows
     @Override
-    public Boolean saveDateRangeCache(String dataSource, String start, String end, String which, int pageSize,int offset,List<List<String>> meteoData) {
-        redisTemplate.opsForHash().put(dataSource,
-                start + "_" + end + "_" + which + "_" + pageSize + "_" + offset,
-                new ObjectMapper().writeValueAsString(meteoData)
-        );
-        return true;
+    public boolean saveDateRangeCache(MeteorologyQueryCriteria criteria, List<List<String>> meteoData) {
+        return save(cacheKey("range", criteria), meteoData);
     }
 
-    @SneakyThrows
     @Override
-    public List<List<String>> getDateRangeCache(String dataSource, String start, String end, String which, int pageSize,int offset) {
-        String strMeteo = (String) redisTemplate.opsForHash().get(dataSource,start + "_" + end + "_" + which + "_" + pageSize + "_" + offset);
-        return strMeteo != null ?
-                new ObjectMapper().readValue(strMeteo, new TypeReference<>() {}) : new ArrayList<>();
+    public List<List<String>> getDateRangeCache(MeteorologyQueryCriteria criteria) {
+        return read(cacheKey("range", criteria));
+    }
+
+    private boolean save(String key, List<List<String>> meteoData) {
+        try {
+            redisTemplate.opsForValue().set(key, objectMapper.writeValueAsString(meteoData), cacheProperties.getMeteorologyTtl());
+            return true;
+        } catch (Exception exception) {
+            return false;
+        }
+    }
+
+    private List<List<String>> read(String key) {
+        Object cachedValue = redisTemplate.opsForValue().get(key);
+        if (cachedValue == null) {
+            return Collections.emptyList();
+        }
+        try {
+            return objectMapper.readValue(cachedValue.toString(), new TypeReference<>() { });
+        } catch (Exception exception) {
+            return Collections.emptyList();
+        }
+    }
+
+    private String cacheKey(String type, MeteorologyQueryCriteria criteria) {
+        return String.join(":",
+                cacheProperties.getPrefix(),
+                type,
+                criteria.getTableName(),
+                nullToEmpty(criteria.getStartDateTime()),
+                nullToEmpty(criteria.getEndDateTime()),
+                nullToEmpty(criteria.getType()),
+                nullToEmpty(criteria.getWhich()),
+                String.valueOf(criteria.getPageSize()),
+                String.valueOf(criteria.getOffset()));
+    }
+
+    private String nullToEmpty(String value) {
+        return value == null ? "" : value;
     }
 }

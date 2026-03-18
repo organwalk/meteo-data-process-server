@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.weather.mapper.SaveToMySQLMapper">
+
+    <insert id="insertStation">
+        INSERT INTO station (station, name)
+        SELECT #{station}, #{name}
+        WHERE NOT EXISTS (
+            SELECT station
+            FROM station
+            WHERE station = #{station}
+        )
+    </insert>
+
+    <insert id="insertStationDateRange">
+        INSERT INTO station_date (date, station)
+        SELECT #{date}, #{station}
+        WHERE NOT EXISTS (
+            SELECT date
+            FROM station_date
+            WHERE station = #{station}
+              AND date = #{date}
+        )
+    </insert>
+
+    <update id="createMeteoDataTableIfNotExists">
+        CREATE TABLE IF NOT EXISTS ${tableName} (
+            id INT PRIMARY KEY AUTO_INCREMENT,
+            station VARCHAR(32) NOT NULL,
+            date DATE NOT NULL,
+            datetime DATETIME NOT NULL,
+            time TIME NOT NULL,
+            temperature FLOAT NULL,
+            humidity FLOAT NULL,
+            speed FLOAT NULL,
+            direction FLOAT NULL,
+            rain FLOAT NULL,
+            sunlight FLOAT NULL,
+            pm25 FLOAT NULL,
+            pm10 FLOAT NULL,
+            UNIQUE KEY (datetime),
+            INDEX (date),
+            INDEX (station)
+        )
+    </update>
+
+    <insert id="insertMeteoData">
+        INSERT INTO ${tableName} (
+            station, date, datetime, time, temperature, humidity, speed, direction, rain, sunlight, pm25, pm10
+        )
+        VALUES
+        <foreach collection="meteoDataList" item="meteoData" separator=",">
+            (
+            #{meteoData.station},
+            #{meteoData.date},
+            #{meteoData.datetime},
+            #{meteoData.time},
+            #{meteoData.temperature},
+            #{meteoData.humidity},
+            #{meteoData.speed},
+            #{meteoData.direction},
+            #{meteoData.rain},
+            #{meteoData.sunlight},
+            #{meteoData.pm25},
+            #{meteoData.pm10}
+            )
+        </foreach>
+        ON DUPLICATE KEY UPDATE
+            temperature = VALUES(temperature),
+            humidity = VALUES(humidity),
+            speed = VALUES(speed),
+            direction = VALUES(direction),
+            rain = VALUES(rain),
+            sunlight = VALUES(sunlight),
+            pm25 = VALUES(pm25),
+            pm10 = VALUES(pm10)
+    </insert>
+</mapper>

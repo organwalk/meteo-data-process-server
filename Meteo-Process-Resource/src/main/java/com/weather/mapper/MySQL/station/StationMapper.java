@@ -1,23 +1,16 @@
 package com.weather.mapper.MySQL.station;
 
-import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.weather.entity.Station;
-import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
+import java.util.Map;
 
-@Mapper
-public interface StationMapper extends BaseMapper<Station> {
-    @Select("select station from station")
+public interface StationMapper {
+    List<Map<String, Object>> selectStationInfo();
+
     List<String> getStationList();
-    @Select("SELECT MAX(date) AS latest_date " +
-            "FROM ${datasource} " +
-            "WHERE station = #{station}")
-    String meteoDataLatestDate(@Param("datasource") String dataSource,
-                               @Param("station") String station);
-    @Select("select COUNT(id) from ${datasource} where station = #{station} limit 1")
-    Integer havingDataByStationCode(@Param("datasource") String dataSource,
-                                    @Param("station") String station);
+
+    String meteoDataLatestDate(@Param("tableName") String tableName, @Param("station") String station);
+
+    Integer havingDataByStationCode(@Param("tableName") String tableName, @Param("station") String station);
 }

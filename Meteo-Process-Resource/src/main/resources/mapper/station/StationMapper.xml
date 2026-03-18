@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.weather.mapper.MySQL.station.StationMapper">
+
+    <select id="selectStationInfo" resultType="map">
+        SELECT station, name
+        FROM station
+    </select>
+
+    <select id="getStationList" resultType="java.lang.String">
+        SELECT station
+        FROM station
+    </select>
+
+    <select id="meteoDataLatestDate" resultType="java.lang.String">
+        SELECT MAX(date) AS latest_date
+        FROM ${tableName}
+        WHERE station = #{station}
+    </select>
+
+    <select id="havingDataByStationCode" resultType="java.lang.Integer">
+        SELECT COUNT(id)
+        FROM ${tableName}
+        WHERE station = #{station}
+        LIMIT 1
+    </select>
+</mapper>

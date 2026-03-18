@@ -1,11 +1,21 @@
 package com.weather.repository;
 
+import org.springframework.data.redis.core.ZSetOperations;
+
 import java.util.Set;
 
 public interface RedisRepository {
     String getToken(String username);
-    String voidToken(String username);
-    String getAllStationCode(String key);
-    Boolean ifInRange(String station,String end);
-    Set getMeteoData(String station, String date);
+
+    String getDefaultToken();
+
+    void saveToken(String username, String token);
+
+    void deleteToken(String username);
+
+    void saveDateRange(String station, String date);
+
+    void saveMeteoData(String station, String date, String payload, double score);
+
+    Set<ZSetOperations.TypedTuple<Object>> getMeteoData(String station, String date);
 }

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.weather.mapper.MySQL.meteorology.ComplexMeteorologyMapper">
+
+    <sql id="complexWhere">
+        WHERE station = #{station}
+          AND DATE_FORMAT(datetime, '%Y-%m-%d %H:%i:00') &gt;= #{startDateTime}
+        <if test="endDateTime != null and endDateTime != ''">AND DATE_FORMAT(datetime, '%Y-%m-%d %H:%i:59') &lt;= #{endDateTime}</if>
+        <if test="startTemperature != null and startTemperature != ''">AND temperature &gt;= #{startTemperature}</if>
+        <if test="endTemperature != null and endTemperature != ''">AND temperature &lt;= #{endTemperature}</if>
+        <if test="startHumidity != null and startHumidity != ''">AND humidity &gt;= #{startHumidity}</if>
+        <if test="endHumidity != null and endHumidity != ''">AND humidity &lt;= #{endHumidity}</if>
+        <if test="startSpeed != null and startSpeed != ''">AND speed &gt;= #{startSpeed}</if>
+        <if test="endSpeed != null and endSpeed != ''">AND speed &lt;= #{endSpeed}</if>
+        <if test="startDirection != null and startDirection != ''">AND direction &gt;= #{startDirection}</if>
+        <if test="endDirection != null and endDirection != ''">AND direction &lt;= #{endDirection}</if>
+        <if test="startRain != null and startRain != ''">AND rain &gt;= #{startRain}</if>
+        <if test="endRain != null and endRain != ''">AND rain &lt;= #{endRain}</if>
+        <if test="startSunlight != null and startSunlight != ''">AND sunlight &gt;= #{startSunlight}</if>
+        <if test="endSunlight != null and endSunlight != ''">AND sunlight &lt;= #{endSunlight}</if>
+        <if test="startPm25 != null and startPm25 != ''">AND pm25 &gt;= #{startPm25}</if>
+        <if test="endPm25 != null and endPm25 != ''">AND pm25 &lt;= #{endPm25}</if>
+        <if test="startPm10 != null and startPm10 != ''">AND pm10 &gt;= #{startPm10}</if>
+        <if test="endPm10 != null and endPm10 != ''">AND pm10 &lt;= #{endPm10}</if>
+    </sql>
+
+    <select id="selectMeteorologyComplex" resultType="com.weather.entity.Meteorology">
+        SELECT datetime, temperature, humidity, speed, direction, rain, sunlight, pm25, pm10
+        FROM ${tableName}
+        <include refid="complexWhere"/>
+        LIMIT #{pageSize} OFFSET #{offset}
+    </select>
+
+    <select id="selectMeteorologyComplexCount" resultType="int">
+        SELECT COUNT(*)
+        FROM ${tableName}
+        <include refid="complexWhere"/>
+    </select>
+</mapper>

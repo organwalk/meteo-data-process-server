@@ -1,40 +1,52 @@
+# Build artifacts
 target/
-logs/
-!.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
-application.yml
+build/
+out/
 
-### IntelliJ IDEA ###
-.idea/modules.xml
-.idea/jarRepositories.xml
-.idea/compiler.xml
-.idea/libraries/
-*.iws
+# Maven Wrapper
+!.mvn/wrapper/maven-wrapper.jar
+!mvnw
+!mvnw.cmd
+
+# Runtime files
+logs/
+work/
+*.log
+hs_err_pid*
+replay_pid*
+derby.log
+
+# Local configuration overrides
+.env
+.env.*
+application-local.yml
+application-*.local.yml
+
+# IntelliJ IDEA
+.idea/
 *.iml
 *.ipr
+*.iws
 
-### Eclipse ###
+# Eclipse
 .apt_generated
 .classpath
 .factorypath
 .project
-.settings
+.settings/
 .springBeans
-.sts4-cache
+.sts4-cache/
 
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
+# NetBeans
+nbproject/private/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
 
-### VS Code ###
+# VS Code
 .vscode/
 
-### Mac OS ###
+# OS files
 .DS_Store
+Thumbs.db

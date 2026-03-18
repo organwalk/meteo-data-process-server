@@ -2,75 +2,77 @@ package com.weather.service.udpServiceImpl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.weather.client.UDPClient;
-import com.weather.controller.ObtainController;
-import com.weather.entity.request.*;
-import com.weather.handler.response.ResponseHandler;
+import com.weather.common.constants.UdpCodes;
+import com.weather.config.UdpProperties;
+import com.weather.entity.request.GetAllStationCode;
+import com.weather.entity.request.GetMeteoData;
+import com.weather.entity.request.GetStationDateRange;
+import com.weather.entity.request.GetToken;
+import com.weather.entity.request.VoidToken;
 import com.weather.repository.RedisRepository;
 import com.weather.service.UdpRequestService;
-import lombok.AllArgsConstructor;
-import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Value;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class UdpRequestServiceImpl implements UdpRequestService {
     private final UDPClient udpClient;
     private final RedisRepository repository;
-    private static final Logger logger = LogManager.getLogger(UdpRequestServiceImpl.class);
-    private static final String appId = "root";
-    private static final String secret = "123456";
+    private final ObjectMapper objectMapper;
+    private final UdpProperties properties;
 
-    @SneakyThrows
-    public boolean getToken(String userName){
-        String getTokenRequest = new ObjectMapper()
-                .writeValueAsString(new GetToken(1,appId,secret));
-        if(repository.getToken(userName) == null){
-            logger.info(getTokenRequest);
-            udpClient.send(getTokenRequest);
-            return false;
-        }else {
-            logger.info("已与远程数据存储服务器建立连接并获得授权，无需重复连接");
+    @Override
+    public boolean getToken(String userName) {
+        if (resolveToken(userName) != null) {
             return true;
+        }
+        return send(new GetToken(UdpCodes.GET_TOKEN, properties.getAuthUsername(), properties.getAuthPassword()));
+    }
+
+    @Override
+    public boolean voidToken(String userName) {
+        String token = resolveToken(userName);
+        if (token == null) {
+            return false;
+        }
+        boolean sent = send(new VoidToken(UdpCodes.VOID_TOKEN, token));
+        if (sent) {
+            repository.deleteToken(userName);
+            repository.deleteToken(properties.getAuthUsername());
+        }
+        return sent;
+    }
+
+    @Override
+    public boolean getAllStationCode(String name) {
+        String token = resolveToken(name);
+        return token != null && send(new GetAllStationCode(UdpCodes.GET_ALL_STATION_CODE, token));
+    }
+
+    @Override
+    public boolean getAllStationDataRange(String name, String station) {
+        String token = resolveToken(name);
+        return token != null && send(new GetStationDateRange(UdpCodes.GET_STATION_DATE_RANGE, token, Integer.valueOf(station)));
+    }
+
+    @Override
+    public boolean getMeteoData(String name, String station, String start, String end) {
+        String token = resolveToken(name);
+        return token != null && send(new GetMeteoData(UdpCodes.GET_METEO_DATA, token, Integer.valueOf(station), start, end));
+    }
+
+    private boolean send(Object request) {
+        try {
+            udpClient.send(objectMapper.writeValueAsString(request));
+            return true;
+        } catch (Exception exception) {
+            return false;
         }
     }
 
-    @SneakyThrows
-    public boolean voidToken(String userName){
-        String voidTokenRequest = new ObjectMapper()
-                .writeValueAsString(new VoidToken(3,repository.getToken(userName)));
-        logger.info(voidTokenRequest);
-        udpClient.send(voidTokenRequest);
-        return repository.voidToken(userName) != null ? true : false;
-    }
-
-    @SneakyThrows
-    public void getAllStationCode(String name) {
-        String getAllStationCodeRequest = new ObjectMapper()
-                .writeValueAsString(new GetAllStationCode(5,repository.getToken(name)));
-        logger.info(getAllStationCodeRequest);
-        udpClient.send(getAllStationCodeRequest);
-    }
-
-    @SneakyThrows
-    public boolean getAllStationDataRange(String name, String station) {
-        String getStationDataRangeRequest = new ObjectMapper()
-                .writeValueAsString(new GetStationDateRange(7,repository.getToken(name),Integer.valueOf(station)));
-        logger.info(getStationDataRangeRequest);
-        udpClient.send(getStationDataRangeRequest);
-        return true;
-    }
-
-    @SneakyThrows
-    public boolean getMeteoData(String name, String station, String start, String end) {
-        String getMeteoDataRequest = new ObjectMapper()
-                .writeValueAsString(new GetMeteoData(9,repository.getToken(name),Integer.valueOf(station),start,end));
-        logger.info(getMeteoDataRequest);
-        udpClient.send(getMeteoDataRequest);
-        return true;
+    private String resolveToken(String userName) {
+        String token = repository.getToken(userName);
+        return token == null ? repository.getDefaultToken() : token;
     }
 }
